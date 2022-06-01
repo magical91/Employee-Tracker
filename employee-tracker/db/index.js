@@ -18,13 +18,18 @@ class Db {
     }
 
     updateEmployeeRole(employeeId, roleId) {
-        console.log("emp id from frontend", employeeId)
         return this.connection.promise().query(
             'UPDATE employee SET role_id = ? WHERE id = ?', [roleId, employeeId]
         );
     }
 
-  
+    viewRoles() {
+        return this.connection.promise().query(
+            `SELECT role.*, department.name AS department
+            FROM role
+            LEFT JOIN department ON role.department_id = department.id`
+        )
+    }
 
     addDepartment(department) {
         return this.connection.promise().query(

@@ -1,9 +1,6 @@
 const inquirer = require('inquirer');
 const db = require('./db/index');
 require('console.table');
-const Department = require('./lib/Department');
-const Employee = require('./lib/Employee');
-const Role = require('./lib/Role');
 
 const departmentArr = [];
 
@@ -71,8 +68,12 @@ const viewDepartments = () => {
 
 const viewRoles = () => {
     
-    
-};
+    db.viewRoles()
+        .then(([rows]) => {
+            let jobTitle = rows;
+            console.table(jobTitle);
+        })
+}
 
 const viewEmployees = () => {
 
@@ -109,7 +110,26 @@ const addDepartment = () => {
 };
 
 const addRole = () => {
+    return inquirer.prompt([
+        {
+            type: 'input',
+            name: 'roleInput',
+            message: 'Enter the role name(Required)',
+            validate: departmentNameInput => {
+                if (departmentNameInput) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+    ]).then(departmentInput => {
 
+        db.addDepartment(departmentInput)
+            .then(() => console.log(`Added ${departmentInput.name} to the database successfully!`))
+            .then(() => workPrompt())
+
+    })
 }
 
 const addEmployee = () => {
@@ -120,8 +140,6 @@ const updateEmployeeRole = () => {
     db.findAllEmployees()
         .then(([rows]) => {
             let employees = rows;
-
-            console.log("EMPLOYEESSS", employees)
 
             const employeeChoices = employees.map(({ id, first_name, last_name }) => ({
                 name: `${first_name} ${last_name}`,
