@@ -2,8 +2,6 @@ const inquirer = require('inquirer');
 const db = require('./db/index');
 require('console.table');
 
-const departmentArr = [];
-
 const workPrompt = () => {
     return inquirer.prompt([
         {
@@ -41,7 +39,7 @@ const workPrompt = () => {
                     break;
                 
                 case 'Add a role':
-                    addRole;
+                    addRole();
                     break;
                 
                 case 'Add an employee':
@@ -56,14 +54,13 @@ const workPrompt = () => {
 };
 
 const viewDepartments = () => {
-    const sql = `SELECT * FROM department`;
-
-    db.query(sql, (err, res) => {
-        if (err) throw err
-        console.log('Viewing Departments');
-        console.table(res);
-        return workPrompt();
-    });
+    
+    db.viewDepartments()
+        .then(([rows]) => {
+            let departments = rows;
+            console.table(departments);
+        })
+    workPrompt();
 };
 
 const viewRoles = () => {
@@ -73,6 +70,7 @@ const viewRoles = () => {
             let jobTitle = rows;
             console.table(jobTitle);
         })
+    workPrompt();
 }
 
 const viewEmployees = () => {
@@ -93,12 +91,27 @@ const addDepartment = () => {
             message: 'Enter the department name(Required)',
             validate: departmentNameInput => {
                 if (departmentNameInput) {
+                    console.log(departmentNameInput)
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        },
+        {
+            type: 'input',
+            name: 'description',
+            message: 'Enter the department description(Required)',
+            validate: departmentTextInput => {
+                if (departmentTextInput) {
+                    console.log(departmentTextInput)
                     return true;
                 } else {
                     return false;
                 }
             }
         }
+
     ]).then(departmentInput =>{ 
 
         db.addDepartment(departmentInput)
@@ -113,27 +126,142 @@ const addRole = () => {
     return inquirer.prompt([
         {
             type: 'input',
-            name: 'roleInput',
+            name: 'title',
             message: 'Enter the role name(Required)',
-            validate: departmentNameInput => {
-                if (departmentNameInput) {
+            validate: rolePrompt => {
+                if (rolePrompt) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        },
+        {
+            type: 'input',
+            name: 'salary',
+            message: 'Enter the role salary(Required)',
+            validate: rolePrompt => {
+                if (rolePrompt) {
                     return true;
                 } else {
                     return false;
                 }
             }
         }
-    ]).then(departmentInput => {
+    ]).then(roleInput => {
+        const roleTitle = roleInput.title;
+        const roleSalary = roleInput.salary;
 
-        db.addDepartment(departmentInput)
-            .then(() => console.log(`Added ${departmentInput.name} to the database successfully!`))
-            .then(() => workPrompt())
+        db.viewDepartments()
+            .then(([rows]) => {
+                let departments = rows;
+
+                const departmentChoices = departments.map(({ name, id }) => ({
+                    name: name,
+                    value: id
+                }))
+
+                inquirer.prompt([
+                    {
+                        type: 'list',
+                        name: 'department_id',
+                        message: 'What department does this role belong to?(Required)',
+                        choices: departmentChoices
+                    }
+                ])
+                    .then((departmentChoice) => {
+                        let role = {
+                            title: roleTitle,
+                            salary: roleSalary,
+                            department_id: departmentChoice.department_id
+                        }
+                    
+                        db.addRole(role)
+                            .then(() => console.log(`Added ${roleInput.name} to the database successfully!`))
+                            .then(() => workPrompt())
+
+                    })
+            })
+
 
     })
 }
 
 const addEmployee = () => {
-
+    return inquirer.prompt([
+        {
+            type: 'input',
+            name: 'first_name',
+            message: 'Enter the employee first name(Required)',
+            validate: rolePrompt => {
+                if (rolePrompt) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        },
+        {
+            type: 'input',
+            name: 'last_name',
+            message: 'Enter the employee last name(Required)',
+            validate: rolePrompt => {
+                if (rolePrompt) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+    ]).then(employeeInput => {
+        const employeeFirstName = employeeInput.first_name;
+        const employeeLastName = employeeInput.last_name;
+        db.viewRoles()
+            .then(([rows]) => {
+                let roles = rows;
+                const roleChoices = roles.map(({ title, id }) => ({
+                    name: title,
+                    value: id
+                }))
+                inquirer.prompt([
+                    {
+                        type: 'list',
+                        name: 'role_id',
+                        message: 'What role does this employee have?(Required)',
+                        choices: roleChoices
+                    }
+                ])
+                    .then((roleChoice) => {
+                        let roleId = roleChoice.role_id;
+                        db.findAllEmployees()
+                            .then(([rows]) => {
+                                let employees = rows;
+                                const employeeChoices = employees.map(({ first_name, last_name, id }) => ({
+                                    name: `${first_name} ${last_name}`,
+                                    value: id
+                                }))
+                                inquirer.prompt([
+                                    {
+                                        type: 'list',
+                                        name: 'manager_id',
+                                        message: 'Who is this employee manager?(Required)',
+                                        choices: employeeChoices
+                                    }
+                                ]).then((managerChoice) => {
+                                    const employee = {
+                                        first_name: employeeFirstName,
+                                        last_name: employeeLastName,
+                                        role_id: roleId,
+                                        manager_id: managerChoice.manager_id
+                                    }
+                                    db.addEmployee(employee)
+                                        .then(() => console.log(`Added ${employeeFirstName} to the database successfully!`))
+                                        .then(() => workPrompt())
+                                })
+                            })
+                    })
+            })
+    })
 }
 
 const updateEmployeeRole = () => {

@@ -23,6 +23,12 @@ class Db {
         );
     }
 
+    viewDepartments() {
+        return this.connection.promise().query(
+            `SELECT * FROM department`
+        )
+    }
+
     viewRoles() {
         return this.connection.promise().query(
             `SELECT role.*, department.name AS department
@@ -32,8 +38,21 @@ class Db {
     }
 
     addDepartment(department) {
+        console.log("department making its way to db", department)
         return this.connection.promise().query(
-            "INSERT into department SET", department
+            `INSERT INTO department SET ?`, department
+        )
+    };
+
+    addRole(role) {
+        return this.connection.promise().query(
+            `INSERT INTO role SET ?`, role
+        )
+    };
+
+    addEmployee(employee) {
+        return this.connection.promise().query(
+            `INSERT INTO employee SET ?`, employee
         )
     };
 }
